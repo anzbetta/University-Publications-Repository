@@ -68,7 +68,7 @@ export function UserRecommendations({
                 <div className="text-sm text-gray-500">
                   Score: {p.score ?? 0}
                 </div>
-                  <button
+                <button
                   onClick={() => onViewDetails(p.id)}
                   className="mt-2 px-3 py-1 bg-blue-600 text-white rounded"
                 >

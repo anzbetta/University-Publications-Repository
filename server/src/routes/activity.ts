@@ -8,14 +8,21 @@ const toNumber = (value: unknown): number => {
     return value;
   }
 
-  if (value && typeof (value as { toNumber?: () => number }).toNumber === "function") {
+  if (
+    value &&
+    typeof (value as { toNumber?: () => number }).toNumber === "function"
+  ) {
     return (value as { toNumber: () => number }).toNumber();
   }
 
   return Number(value || 0);
 };
 
-const mapPublication = (publication: any, authors: string[], keywords: string[]) => {
+const mapPublication = (
+  publication: any,
+  authors: string[],
+  keywords: string[],
+) => {
   const publicationId = toNumber(publication.publicationId);
   const year = toNumber(publication.year);
 
@@ -45,7 +52,12 @@ router.get("/liked/:userId/:publicationId", async (req, res) => {
   const userId = Number(req.params.userId);
   const publicationId = Number(req.params.publicationId);
 
-  if (!Number.isInteger(userId) || userId <= 0 || !Number.isInteger(publicationId) || publicationId <= 0) {
+  if (
+    !Number.isInteger(userId) ||
+    userId <= 0 ||
+    !Number.isInteger(publicationId) ||
+    publicationId <= 0
+  ) {
     return res.status(400).json({ message: "Invalid userId or publicationId" });
   }
 
@@ -65,7 +77,9 @@ router.get("/liked/:userId/:publicationId", async (req, res) => {
     return res.json({ liked });
   } catch (error) {
     console.error("Failed to check liked publication:", error);
-    return res.status(500).json({ message: "Failed to check liked publication" });
+    return res
+      .status(500)
+      .json({ message: "Failed to check liked publication" });
   } finally {
     await session.close();
   }
@@ -103,12 +117,12 @@ router.get("/liked/:userId", async (req, res) => {
 
     const publications = result.records.map((record) => {
       const publication = record.get("publication").properties;
-      const authors = (record.get("authors") as Array<string | null | undefined>).filter(
-        (author): author is string => Boolean(author),
-      );
-      const keywords = (record.get("keywords") as Array<string | null | undefined>).filter(
-        (keyword): keyword is string => Boolean(keyword),
-      );
+      const authors = (
+        record.get("authors") as Array<string | null | undefined>
+      ).filter((author): author is string => Boolean(author));
+      const keywords = (
+        record.get("keywords") as Array<string | null | undefined>
+      ).filter((keyword): keyword is string => Boolean(keyword));
 
       return mapPublication(publication, authors, keywords);
     });
@@ -127,8 +141,15 @@ router.delete("/like", async (req, res) => {
   const parsedUserId = Number(userId);
   const parsedPublicationId = Number(publicationId);
 
-  if (!Number.isInteger(parsedUserId) || parsedUserId <= 0 || !Number.isInteger(parsedPublicationId) || parsedPublicationId <= 0) {
-    return res.status(400).json({ message: "userId and publicationId required" });
+  if (
+    !Number.isInteger(parsedUserId) ||
+    parsedUserId <= 0 ||
+    !Number.isInteger(parsedPublicationId) ||
+    parsedPublicationId <= 0
+  ) {
+    return res
+      .status(400)
+      .json({ message: "userId and publicationId required" });
   }
 
   const session = driver.session({ database });
@@ -186,12 +207,12 @@ router.get("/viewed/:userId", async (req, res) => {
 
     const publications = result.records.map((record) => {
       const publication = record.get("publication").properties;
-      const authors = (record.get("authors") as Array<string | null | undefined>).filter(
-        (author): author is string => Boolean(author),
-      );
-      const keywords = (record.get("keywords") as Array<string | null | undefined>).filter(
-        (keyword): keyword is string => Boolean(keyword),
-      );
+      const authors = (
+        record.get("authors") as Array<string | null | undefined>
+      ).filter((author): author is string => Boolean(author));
+      const keywords = (
+        record.get("keywords") as Array<string | null | undefined>
+      ).filter((keyword): keyword is string => Boolean(keyword));
 
       return mapPublication(publication, authors, keywords);
     });

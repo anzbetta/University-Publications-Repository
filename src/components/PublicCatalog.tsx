@@ -9,7 +9,8 @@ interface Recommendation extends Publication {
   reasons?: string[];
 }
 
-type CatalogItem = Publication & Partial<Pick<Recommendation, "score" | "reasons">>;
+type CatalogItem = Publication &
+  Partial<Pick<Recommendation, "score" | "reasons">>;
 
 interface PublicCatalogProps {
   publications: Publication[];
@@ -41,13 +42,18 @@ export function PublicCatalog({
 
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [likedPublications, setLikedPublications] = useState<CatalogItem[]>([]);
-  const [viewedPublications, setViewedPublications] = useState<CatalogItem[]>([]);
+  const [viewedPublications, setViewedPublications] = useState<CatalogItem[]>(
+    [],
+  );
 
-  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] =
+    useState(false);
   const [isLoadingLiked, setIsLoadingLiked] = useState(false);
   const [isLoadingViewed, setIsLoadingViewed] = useState(false);
 
-  const [recommendationsError, setRecommendationsError] = useState<string | null>(null);
+  const [recommendationsError, setRecommendationsError] = useState<
+    string | null
+  >(null);
   const [likedError, setLikedError] = useState<string | null>(null);
   const [viewedError, setViewedError] = useState<string | null>(null);
 
@@ -86,7 +92,9 @@ export function PublicCatalog({
           const data: Recommendation[] = await response.json();
           setRecommendations(Array.isArray(data) ? data : []);
         } catch {
-          setRecommendationsError("Failed to load personalized recommendations");
+          setRecommendationsError(
+            "Failed to load personalized recommendations",
+          );
         } finally {
           setIsLoadingRecommendations(false);
         }
@@ -149,21 +157,31 @@ export function PublicCatalog({
     selectedType !== "all";
 
   const publicationTypes = useMemo(
-    () => ["all", ...Array.from(new Set(publications.map((publication) => publication.publicationType)))],
+    () => [
+      "all",
+      ...Array.from(
+        new Set(publications.map((publication) => publication.publicationType)),
+      ),
+    ],
     [publications],
   );
 
   const faculties = useMemo(
-    () => ["all", ...Array.from(new Set(publications.map((publication) => publication.faculty)))],
+    () => [
+      "all",
+      ...Array.from(
+        new Set(publications.map((publication) => publication.faculty)),
+      ),
+    ],
     [publications],
   );
 
   const years = useMemo(
     () => [
       "all",
-      ...Array.from(new Set(publications.map((publication) => publication.year))).sort((a, b) =>
-        parseInt(b, 10) - parseInt(a, 10),
-      ),
+      ...Array.from(
+        new Set(publications.map((publication) => publication.year)),
+      ).sort((a, b) => parseInt(b, 10) - parseInt(a, 10)),
     ],
     [publications],
   );
@@ -182,7 +200,15 @@ export function PublicCatalog({
     }
 
     return viewedPublications;
-  }, [activeTab, currentUserId, isSearchMode, likedPublications, publications, recommendations, viewedPublications]);
+  }, [
+    activeTab,
+    currentUserId,
+    isSearchMode,
+    likedPublications,
+    publications,
+    recommendations,
+    viewedPublications,
+  ]);
 
   const filteredPublications = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -194,9 +220,12 @@ export function PublicCatalog({
         publication.authors.toLowerCase().includes(query) ||
         publication.keywords.toLowerCase().includes(query);
 
-      const matchesType = selectedType === "all" || publication.publicationType === selectedType;
-      const matchesFaculty = selectedFaculty === "all" || publication.faculty === selectedFaculty;
-      const matchesYear = selectedYear === "all" || publication.year === selectedYear;
+      const matchesType =
+        selectedType === "all" || publication.publicationType === selectedType;
+      const matchesFaculty =
+        selectedFaculty === "all" || publication.faculty === selectedFaculty;
+      const matchesYear =
+        selectedYear === "all" || publication.year === selectedYear;
 
       return matchesSearch && matchesType && matchesFaculty && matchesYear;
     });
@@ -210,14 +239,19 @@ export function PublicCatalog({
   };
 
   const hasActiveFilters = isSearchMode;
-  const isRecommendationsTab = currentUserId ? activeTab === "recommendations" : false;
+  const isRecommendationsTab = currentUserId
+    ? activeTab === "recommendations"
+    : false;
   const isLikedTab = currentUserId ? activeTab === "liked" : false;
   const isViewedTab = currentUserId ? activeTab === "viewed" : false;
 
   const showRecommendationsLoading =
     isRecommendationsTab && !isSearchMode && isLoadingRecommendations;
 
-  const renderPublicationCard = (publication: CatalogItem, showRecommendationMeta: boolean) => (
+  const renderPublicationCard = (
+    publication: CatalogItem,
+    showRecommendationMeta: boolean,
+  ) => (
     <div
       key={publication.id}
       className="bg-white rounded-lg border border-gray-200 p-6 hover:border-blue-300 transition-colors"
@@ -233,11 +267,12 @@ export function PublicCatalog({
               <div className="flex items-center gap-2 text-gray-600 text-sm mb-2 flex-wrap">
                 <User size={14} />
                 <span>{publication.authors}</span>
-                {showRecommendationMeta && typeof publication.score === "number" && (
-                  <span className="ml-2 px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">
-                    Score: {publication.score}
-                  </span>
-                )}
+                {showRecommendationMeta &&
+                  typeof publication.score === "number" && (
+                    <span className="ml-2 px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">
+                      Score: {publication.score}
+                    </span>
+                  )}
               </div>
               <div className="flex items-center gap-2 text-gray-500 text-sm flex-wrap">
                 <Calendar size={14} />
@@ -250,14 +285,19 @@ export function PublicCatalog({
             </div>
           </div>
 
-          <p className="text-gray-600 text-sm mb-3 line-clamp-2">{publication.annotation}</p>
+          <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+            {publication.annotation}
+          </p>
 
           <div className="flex flex-wrap gap-2 mb-3">
             {publication.keywords
               .split(",")
               .slice(0, 5)
               .map((keyword, index) => (
-                <span key={index} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
+                <span
+                  key={index}
+                  className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs"
+                >
                   {keyword.trim()}
                 </span>
               ))}
@@ -269,7 +309,9 @@ export function PublicCatalog({
             </div>
           ) : null}
 
-          {publication.doi && <p className="text-gray-500 text-sm">DOI: {publication.doi}</p>}
+          {publication.doi && (
+            <p className="text-gray-500 text-sm">DOI: {publication.doi}</p>
+          )}
         </div>
 
         <button
@@ -290,19 +332,19 @@ export function PublicCatalog({
           {isSearchMode
             ? "Search Results"
             : currentUserId && !isSearchMode
-            ? activeTab === "recommendations"
-              ? "Recommended Publications"
-              : activeTab === "liked"
-                ? "Liked Publications"
-                : "Viewed Publications"
-            : "Publications Catalog"}
+              ? activeTab === "recommendations"
+                ? "Recommended Publications"
+                : activeTab === "liked"
+                  ? "Liked Publications"
+                  : "Viewed Publications"
+              : "Publications Catalog"}
         </h2>
         <p className="text-gray-600">
           {isSearchMode
             ? "Found Publications"
             : currentUserId && !isSearchMode && activeTab === "recommendations"
-            ? "Personalized selection based on your activity in the system"
-            : "Browse and search scientific publications from our university"}
+              ? "Personalized selection based on your activity in the system"
+              : "Browse and search scientific publications from our university"}
         </p>
       </div>
 
@@ -431,48 +473,75 @@ export function PublicCatalog({
         </div>
       )}
 
-      {currentUserId && recommendationsError && activeTab === "recommendations" && !isSearchMode && (
-        <div className="mb-4 p-4 bg-red-50 text-red-700 rounded">{recommendationsError}</div>
-      )}
+      {currentUserId &&
+        recommendationsError &&
+        activeTab === "recommendations" &&
+        !isSearchMode && (
+          <div className="mb-4 p-4 bg-red-50 text-red-700 rounded">
+            {recommendationsError}
+          </div>
+        )}
 
       {currentUserId && likedError && activeTab === "liked" && (
-        <div className="mb-4 p-4 bg-red-50 text-red-700 rounded">{likedError}</div>
+        <div className="mb-4 p-4 bg-red-50 text-red-700 rounded">
+          {likedError}
+        </div>
       )}
 
       {currentUserId && viewedError && activeTab === "viewed" && (
-        <div className="mb-4 p-4 bg-red-50 text-red-700 rounded">{viewedError}</div>
+        <div className="mb-4 p-4 bg-red-50 text-red-700 rounded">
+          {viewedError}
+        </div>
       )}
 
       {!currentUserId && (
         <div className="mb-4">
           <p className="text-gray-600">
-            Showing {filteredPublications.length} of {publications.length} publications
+            Showing {filteredPublications.length} of {publications.length}{" "}
+            publications
           </p>
         </div>
       )}
 
-      {currentUserId && !isSearchMode && activeTab === "recommendations" && !isLoadingRecommendations && !recommendationsError && recommendations.length === 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-          <p className="text-gray-500">{recommendationEmptyMessage}</p>
-        </div>
-      )}
+      {currentUserId &&
+        !isSearchMode &&
+        activeTab === "recommendations" &&
+        !isLoadingRecommendations &&
+        !recommendationsError &&
+        recommendations.length === 0 && (
+          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+            <p className="text-gray-500">{recommendationEmptyMessage}</p>
+          </div>
+        )}
 
-      {currentUserId && !isSearchMode && activeTab === "liked" && !isLoadingLiked && !likedError && likedPublications.length === 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-          <p className="text-gray-500">{likedEmptyMessage}</p>
-        </div>
-      )}
+      {currentUserId &&
+        !isSearchMode &&
+        activeTab === "liked" &&
+        !isLoadingLiked &&
+        !likedError &&
+        likedPublications.length === 0 && (
+          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+            <p className="text-gray-500">{likedEmptyMessage}</p>
+          </div>
+        )}
 
-      {currentUserId && !isSearchMode && activeTab === "viewed" && !isLoadingViewed && !viewedError && viewedPublications.length === 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
-          <p className="text-gray-500">{viewedEmptyMessage}</p>
-        </div>
-      )}
+      {currentUserId &&
+        !isSearchMode &&
+        activeTab === "viewed" &&
+        !isLoadingViewed &&
+        !viewedError &&
+        viewedPublications.length === 0 && (
+          <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+            <p className="text-gray-500">{viewedEmptyMessage}</p>
+          </div>
+        )}
 
       {filteredPublications.length === 0 && (isSearchMode || !currentUserId) ? (
         <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
           <p className="text-gray-500">
-            {isSearchMode ? "No publications found for your query." : "No publications found matching your criteria"}
+            {isSearchMode
+              ? "No publications found for your query."
+              : "No publications found matching your criteria"}
           </p>
           {hasActiveFilters && (
             <button
@@ -490,7 +559,10 @@ export function PublicCatalog({
           {filteredPublications.map((publication) =>
             renderPublicationCard(
               publication,
-              currentUserId !== undefined && currentUserId !== null && activeTab === "recommendations" && !isSearchMode,
+              currentUserId !== undefined &&
+                currentUserId !== null &&
+                activeTab === "recommendations" &&
+                !isSearchMode,
             ),
           )}
         </div>

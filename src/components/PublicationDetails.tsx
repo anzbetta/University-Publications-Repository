@@ -101,7 +101,11 @@ export function PublicationDetails({
 
       const nextLiked = !isLiked;
       setIsLiked(nextLiked);
-      setLikeMessage(nextLiked ? "Publication added to liked" : "Publication removed from liked");
+      setLikeMessage(
+        nextLiked
+          ? "Publication added to liked"
+          : "Publication removed from liked",
+      );
       setTimeout(() => setLikeMessage(null), 3000);
     } catch {
       setLikeMessage("Failed to update liked status");
