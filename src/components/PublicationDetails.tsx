@@ -1,12 +1,112 @@
-import { ArrowLeft, Download, Calendar, User, Building2, Hash, BookOpen, Link as LinkIcon } from 'lucide-react';
-import { Publication } from '../App';
+import {
+  ArrowLeft,
+  Download,
+  Calendar,
+  User,
+  Building2,
+  Hash,
+  BookOpen,
+  Link as LinkIcon,
+} from "lucide-react";
+import { Publication } from "../App";
+import { useEffect, useState } from "react";
 
 interface PublicationDetailsProps {
   publication: Publication;
+  currentUserId?: number;
   onBack: () => void;
 }
+export function PublicationDetails({
+  publication,
+  currentUserId,
+  onBack,
+}: PublicationDetailsProps) {
+  const [likeMessage, setLikeMessage] = useState<string | null>(null);
+  const [viewMessage, setViewMessage] = useState<string | null>(null);
+  const [isLiked, setIsLiked] = useState(false);
+  const [isLikeStatusLoading, setIsLikeStatusLoading] = useState(false);
 
-export function PublicationDetails({ publication, onBack }: PublicationDetailsProps) {
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const checkLikedStatus = async () => {
+      setIsLikeStatusLoading(true);
+
+      try {
+        const response = await fetch(
+          `http://localhost:4000/api/activity/liked/${currentUserId}/${publication.id}`,
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to check liked status");
+        }
+
+        const data: { liked?: boolean } = await response.json();
+        setIsLiked(Boolean(data.liked));
+      } catch {
+        setIsLiked(false);
+      } finally {
+        setIsLikeStatusLoading(false);
+      }
+    };
+
+    const recordView = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:4000/api/activity/view",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              userId: currentUserId,
+              publicationId: Number(publication.id),
+            }),
+          },
+        );
+
+        if (!response.ok) {
+          const data = await response.json().catch(() => null);
+          setViewMessage(data?.message || "Failed to save view");
+        } else {
+          setViewMessage(null);
+        }
+      } catch {
+        setViewMessage("Failed to save view");
+      }
+    };
+
+    recordView();
+    checkLikedStatus();
+  }, [currentUserId, publication.id]);
+
+  const handleLike = async () => {
+    if (!currentUserId) return;
+
+    try {
+      const url = "http://localhost:4000/api/activity/like";
+      const method = isLiked ? "DELETE" : "POST";
+
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: currentUserId,
+          publicationId: Number(publication.id),
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update liked status");
+      }
+
+      const nextLiked = !isLiked;
+      setIsLiked(nextLiked);
+      setLikeMessage(nextLiked ? "Publication added to liked" : "Publication removed from liked");
+      setTimeout(() => setLikeMessage(null), 3000);
+    } catch {
+      setLikeMessage("Failed to update liked status");
+    }
+  };
   const handleDownload = () => {
     alert(`Downloading: ${publication.fileName}`);
   };
@@ -50,14 +150,16 @@ export function PublicationDetails({ publication, onBack }: PublicationDetailsPr
           {/* Abstract */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h3 className="text-gray-900 mb-3">Abstract</h3>
-            <p className="text-gray-700 leading-relaxed">{publication.annotation}</p>
+            <p className="text-gray-700 leading-relaxed">
+              {publication.annotation}
+            </p>
           </div>
 
           {/* Keywords */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
             <h3 className="text-gray-900 mb-3">Keywords</h3>
             <div className="flex flex-wrap gap-2">
-              {publication.keywords.split(',').map((keyword, index) => (
+              {publication.keywords.split(",").map((keyword, index) => (
                 <span
                   key={index}
                   className="px-3 py-1 bg-blue-50 text-blue-700 rounded border border-blue-200"
@@ -73,11 +175,15 @@ export function PublicationDetails({ publication, onBack }: PublicationDetailsPr
             <h3 className="text-gray-900 mb-3">Department Information</h3>
             <div className="space-y-2">
               <div>
-                <label className="block text-gray-600 text-sm mb-1">Faculty</label>
+                <label className="block text-gray-600 text-sm mb-1">
+                  Faculty
+                </label>
                 <p className="text-gray-900">{publication.faculty}</p>
               </div>
               <div>
-                <label className="block text-gray-600 text-sm mb-1">Department</label>
+                <label className="block text-gray-600 text-sm mb-1">
+                  Department
+                </label>
                 <p className="text-gray-900">{publication.department}</p>
               </div>
             </div>
@@ -96,10 +202,36 @@ export function PublicationDetails({ publication, onBack }: PublicationDetailsPr
               <Download size={20} />
               <span>Download PDF</span>
             </button>
+            {currentUserId && (
+              <button
+                onClick={handleLike}
+                disabled={isLikeStatusLoading}
+                className={`w-full mt-3 flex items-center justify-center gap-2 px-4 py-3 rounded transition-colors ${
+                  isLiked
+                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                } ${isLikeStatusLoading ? "opacity-70 cursor-wait" : ""}`}
+              >
+                <BookOpen size={18} />
+                <span>{isLiked ? "Liked" : "Like"}</span>
+              </button>
+            )}
             <div className="mt-4 p-3 bg-blue-50 rounded">
               <p className="text-blue-900 text-sm">{publication.fileName}</p>
             </div>
           </div>
+
+          {likeMessage && (
+            <div className="p-3 bg-green-50 border border-green-200 text-green-700 rounded">
+              {likeMessage}
+            </div>
+          )}
+
+          {viewMessage && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded">
+              {viewMessage}
+            </div>
+          )}
 
           {/* Identifiers */}
           <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -107,7 +239,9 @@ export function PublicationDetails({ publication, onBack }: PublicationDetailsPr
             <div className="space-y-3">
               {publication.doi && (
                 <div>
-                  <label className="block text-gray-600 text-sm mb-1">DOI</label>
+                  <label className="block text-gray-600 text-sm mb-1">
+                    DOI
+                  </label>
                   <div className="flex items-center gap-2">
                     <LinkIcon size={14} className="text-gray-400" />
                     <a
@@ -123,13 +257,17 @@ export function PublicationDetails({ publication, onBack }: PublicationDetailsPr
               )}
               {publication.issn && (
                 <div>
-                  <label className="block text-gray-600 text-sm mb-1">ISSN</label>
+                  <label className="block text-gray-600 text-sm mb-1">
+                    ISSN
+                  </label>
                   <p className="text-gray-900 text-sm">{publication.issn}</p>
                 </div>
               )}
               {publication.isbn && (
                 <div>
-                  <label className="block text-gray-600 text-sm mb-1">ISBN</label>
+                  <label className="block text-gray-600 text-sm mb-1">
+                    ISBN
+                  </label>
                   <p className="text-gray-900 text-sm">{publication.isbn}</p>
                 </div>
               )}
@@ -146,11 +284,15 @@ export function PublicationDetails({ publication, onBack }: PublicationDetailsPr
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-600 text-sm">Type</span>
-                <span className="text-gray-900 text-sm">{publication.publicationType}</span>
+                <span className="text-gray-900 text-sm">
+                  {publication.publicationType}
+                </span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-gray-600 text-sm">Keywords</span>
-                <span className="text-gray-900">{publication.keywords.split(',').length}</span>
+                <span className="text-gray-900">
+                  {publication.keywords.split(",").length}
+                </span>
               </div>
             </div>
           </div>
@@ -160,7 +302,7 @@ export function PublicationDetails({ publication, onBack }: PublicationDetailsPr
             <h3 className="text-gray-900 mb-3">Citation</h3>
             <div className="p-3 bg-gray-50 rounded text-sm text-gray-700">
               <p className="break-words">
-                {publication.authors} ({publication.year}). {publication.title}.{' '}
+                {publication.authors} ({publication.year}). {publication.title}.{" "}
                 {publication.publicationType}.
                 {publication.doi && ` DOI: ${publication.doi}`}
               </p>

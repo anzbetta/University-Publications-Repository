@@ -1,16 +1,21 @@
-import { User, LogOut, FileText, Home } from 'lucide-react';
-
-type UserRole = 'author' | 'admin' | 'guest' | null;
+import { User, LogOut, FileText, Home } from "lucide-react";
+import type { UserRole } from "../App";
 
 interface HeaderProps {
-  userRole: UserRole;
+  userRole: UserRole | null;
   userName: string;
   onLogout: () => void;
   onNavigateToCatalog: () => void;
   onNavigateToDashboard: () => void;
 }
 
-export function Header({ userRole, userName, onLogout, onNavigateToCatalog, onNavigateToDashboard }: HeaderProps) {
+export function Header({
+  userRole,
+  userName,
+  onLogout,
+  onNavigateToCatalog,
+  onNavigateToDashboard,
+}: HeaderProps) {
   return (
     <header className="bg-white border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -34,6 +39,7 @@ export function Header({ userRole, userName, onLogout, onNavigateToCatalog, onNa
                 <FileText size={18} />
                 <span>Publications</span>
               </button>
+              {/* Recommendations tab removed - recommendations shown in catalog */}
             </nav>
           </div>
 

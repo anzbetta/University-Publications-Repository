@@ -1,14 +1,13 @@
-import { useState } from 'react';
-import { Header } from './components/Header';
-import { LoginPage } from './components/LoginPage';
-import { AuthorDashboard } from './components/AuthorDashboard';
-import { CreatePublicationForm } from './components/CreatePublicationForm';
-import { AdminDashboard } from './components/AdminDashboard';
-import { AdminReviewScreen } from './components/AdminReviewScreen';
-import { PublicCatalog } from './components/PublicCatalog';
-import { PublicationDetails } from './components/PublicationDetails';
-import { SuccessDialog } from './components/SuccessDialog';
-
+import { useEffect, useState } from "react";
+import { Header } from "./components/Header";
+import { LoginPage } from "./components/LoginPage";
+import { AuthorDashboard } from "./components/AuthorDashboard";
+import { CreatePublicationForm } from "./components/CreatePublicationForm";
+import { AdminDashboard } from "./components/AdminDashboard";
+import { AdminReviewScreen } from "./components/AdminReviewScreen";
+import { PublicCatalog } from "./components/PublicCatalog";
+import { PublicationDetails } from "./components/PublicationDetails";
+import { SuccessDialog } from "./components/SuccessDialog";
 export interface Publication {
   id: string;
   authors: string;
@@ -23,7 +22,7 @@ export interface Publication {
   department: string;
   year: string;
   fileName: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   submittedBy: string;
   submittedDate: string;
   reviewedBy?: string;
@@ -31,167 +30,209 @@ export interface Publication {
   reviewNotes?: string;
 }
 
-type UserRole = 'author' | 'admin' | 'guest' | null;
-type Screen = 'login' | 'author-dashboard' | 'create-publication' | 'admin-dashboard' | 'admin-review' | 'public-catalog' | 'publication-details';
+export type UserRole = "user" | "author" | "admin" | "guest";
+
+export interface CurrentUser {
+  userId: number;
+  name: string;
+  email: string;
+  role: UserRole;
+}
+
+type Screen =
+  | "login"
+  | "author-dashboard"
+  | "create-publication"
+  | "admin-dashboard"
+  | "admin-review"
+  | "public-catalog"
+  | "publication-details";
+
+const CURRENT_USER_STORAGE_KEY = "currentUser";
+
+const readStoredUser = (): CurrentUser | null => {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const savedUser = localStorage.getItem(CURRENT_USER_STORAGE_KEY);
+
+  if (!savedUser) {
+    return null;
+  }
+
+  try {
+    const parsedUser = JSON.parse(savedUser) as CurrentUser;
+
+    return parsedUser && parsedUser.role ? parsedUser : null;
+  } catch {
+    localStorage.removeItem(CURRENT_USER_STORAGE_KEY);
+    return null;
+  }
+};
+
+const getInitialScreen = (user: CurrentUser | null): Screen => {
+  if (!user) {
+    return "login";
+  }
+
+  if (user.role === "admin") {
+    return "admin-dashboard";
+  }
+
+  if (user.role === "author") {
+    return "author-dashboard";
+  }
+
+  return "public-catalog";
+};
 
 function App() {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('login');
-  const [userRole, setUserRole] = useState<UserRole>(null);
-  const [userName, setUserName] = useState<string>('');
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(() =>
+    readStoredUser(),
+  );
+  const [currentScreen, setCurrentScreen] = useState<Screen>(() =>
+    getInitialScreen(readStoredUser()),
+  );
+  const currentUserName = currentUser?.name || "";
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
-  const [selectedPublicationId, setSelectedPublicationId] = useState<string | null>(null);
+  const [selectedPublicationId, setSelectedPublicationId] = useState<
+    string | null
+  >(null);
 
-  // Mock data for publications
-  const [publications, setPublications] = useState<Publication[]>([
-    {
-      id: '1',
-      authors: 'Dr. Sarah Johnson, Prof. Michael Chen',
-      title: 'Advanced Machine Learning Techniques for Medical Diagnosis',
-      publicationType: 'Journal Article',
-      doi: '10.1234/jml.2024.001',
-      issn: '2156-7890',
-      isbn: '',
-      keywords: 'machine learning, medical diagnosis, neural networks, healthcare',
-      annotation: 'This paper presents novel machine learning approaches for improving medical diagnosis accuracy. We introduce a new neural network architecture that achieves 95% accuracy in early disease detection.',
-      faculty: 'Faculty of Computer Science',
-      department: 'Department of Artificial Intelligence',
-      year: '2024',
-      fileName: 'ml-medical-diagnosis.pdf',
-      status: 'approved',
-      submittedBy: 'sarah.johnson@university.edu',
-      submittedDate: '2024-11-15',
-      reviewedBy: 'admin@university.edu',
-      reviewedDate: '2024-11-20'
-    },
-    {
-      id: '2',
-      authors: 'Prof. Emily Roberts',
-      title: 'Quantum Computing Applications in Cryptography',
-      publicationType: 'Conference Paper',
-      doi: '10.5678/qc.2024.042',
-      issn: '',
-      isbn: '978-1-234-56789-0',
-      keywords: 'quantum computing, cryptography, security, algorithms',
-      annotation: 'An exploration of quantum computing principles applied to modern cryptographic systems. This research discusses potential vulnerabilities and new protection mechanisms.',
-      faculty: 'Faculty of Physics',
-      department: 'Department of Quantum Physics',
-      year: '2024',
-      fileName: 'quantum-crypto.pdf',
-      status: 'pending',
-      submittedBy: 'emily.roberts@university.edu',
-      submittedDate: '2024-12-01'
-    },
-    {
-      id: '3',
-      authors: 'Dr. James Wilson, Dr. Anna Martinez, Dr. Thomas Lee',
-      title: 'Sustainable Urban Development: Case Studies from European Cities',
-      publicationType: 'Book Chapter',
-      doi: '10.9012/sud.2023.156',
-      issn: '',
-      isbn: '978-0-987-65432-1',
-      keywords: 'urban development, sustainability, environmental policy, smart cities',
-      annotation: 'This chapter examines sustainable development practices in major European cities, analyzing policy frameworks, implementation challenges, and measurable outcomes over the past decade.',
-      faculty: 'Faculty of Architecture and Urban Planning',
-      department: 'Department of Urban Studies',
-      year: '2023',
-      fileName: 'sustainable-urban-dev.pdf',
-      status: 'approved',
-      submittedBy: 'james.wilson@university.edu',
-      submittedDate: '2023-10-20',
-      reviewedBy: 'admin@university.edu',
-      reviewedDate: '2023-10-25'
-    }
-  ]);
+  const [publications, setPublications] = useState<Publication[]>([]);
+  const [isLoadingPublications, setIsLoadingPublications] = useState(false);
+  const [publicationsError, setPublicationsError] = useState<string | null>(
+    null,
+  );
 
-  const handleLogin = (role: UserRole, name: string) => {
-    setUserRole(role);
-    setUserName(name);
-    
-    if (role === 'author') {
-      setCurrentScreen('author-dashboard');
-    } else if (role === 'admin') {
-      setCurrentScreen('admin-dashboard');
-    } else if (role === 'guest') {
-      setCurrentScreen('public-catalog');
-    }
+  useEffect(() => {
+    const fetchPublications = async () => {
+      setIsLoadingPublications(true);
+      setPublicationsError(null);
+
+      try {
+        const response = await fetch("http://localhost:4000/api/publications");
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch publications");
+        }
+
+        const data: Publication[] = await response.json();
+        setPublications(data);
+      } catch {
+        setPublicationsError("Не вдалося завантажити публікації з бази даних");
+      } finally {
+        setIsLoadingPublications(false);
+      }
+    };
+
+    fetchPublications();
+  }, []);
+
+  const handleLogin = (user: CurrentUser): void => {
+    setCurrentUser(user);
+    localStorage.setItem("currentUser", JSON.stringify(user));
+
+    if (user.role === "author") setCurrentScreen("author-dashboard");
+    else if (user.role === "admin") setCurrentScreen("admin-dashboard");
+    else setCurrentScreen("public-catalog");
   };
 
-  const handleLogout = () => {
-    setUserRole(null);
-    setUserName('');
-    setCurrentScreen('login');
+  const handleLogout = (): void => {
+    setCurrentUser(null);
+    localStorage.removeItem("currentUser");
+    setSelectedPublicationId(null);
+    setCurrentScreen("login");
   };
 
-  const handleCreatePublication = () => {
-    setCurrentScreen('create-publication');
+  const handleCreatePublication = (): void => {
+    setCurrentScreen("create-publication");
   };
 
-  const handleSubmitPublication = (publication: Omit<Publication, 'id' | 'status' | 'submittedDate'>) => {
+  const handleSubmitPublication = (
+    publication: Omit<Publication, "id" | "status" | "submittedDate">,
+  ): void => {
     const newPublication: Publication = {
       ...publication,
       id: Date.now().toString(),
-      status: 'pending',
-      submittedDate: new Date().toISOString().split('T')[0],
-      submittedBy: userName
+      status: "pending",
+      submittedDate: new Date().toISOString().split("T")[0],
+      submittedBy: currentUserName,
     };
-    
-    setPublications([...publications, newPublication]);
+
+    setPublications((prevPublications) => [
+      ...prevPublications,
+      newPublication,
+    ]);
     setShowSuccessDialog(true);
-    setCurrentScreen('author-dashboard');
+    setCurrentScreen("author-dashboard");
   };
 
-  const handleNavigateToPublicCatalog = () => {
-    setCurrentScreen('public-catalog');
+  const handleNavigateToPublicCatalog = (): void => {
+    setCurrentScreen("public-catalog");
   };
 
-  const handleNavigateToDashboard = () => {
-    if (userRole === 'author') {
-      setCurrentScreen('author-dashboard');
-    } else if (userRole === 'admin') {
-      setCurrentScreen('admin-dashboard');
-    } else {
-      setCurrentScreen('public-catalog');
-    }
+  // recommendations now displayed inside PublicCatalog
+
+  const handleNavigateToDashboard = (): void => {
+    if (currentUser?.role === "author") setCurrentScreen("author-dashboard");
+    else if (currentUser?.role === "admin") setCurrentScreen("admin-dashboard");
+    else setCurrentScreen("public-catalog");
   };
 
-  const handleViewPublication = (id: string) => {
+  const handleViewPublication = (id: string): void => {
     setSelectedPublicationId(id);
-    setCurrentScreen('publication-details');
+    setCurrentScreen("publication-details");
   };
 
-  const handleReviewPublication = (id: string) => {
+  const handleReviewPublication = (id: string): void => {
     setSelectedPublicationId(id);
-    setCurrentScreen('admin-review');
+    setCurrentScreen("admin-review");
   };
 
-  const handleApproveReject = (id: string, status: 'approved' | 'rejected', notes: string) => {
-    setPublications(publications.map(pub => 
-      pub.id === id 
-        ? { 
-            ...pub, 
-            status, 
-            reviewedBy: userName,
-            reviewedDate: new Date().toISOString().split('T')[0],
-            reviewNotes: notes
-          }
-        : pub
-    ));
-    setCurrentScreen('admin-dashboard');
+  const handleApproveReject = (
+    id: string,
+    status: "approved" | "rejected",
+    notes: string,
+  ): void => {
+    setPublications((prevPublications) =>
+      prevPublications.map((publication) =>
+        publication.id === id
+          ? {
+              ...publication,
+              status,
+              reviewedBy: currentUserName,
+              reviewedDate: new Date().toISOString().split("T")[0],
+              reviewNotes: notes,
+            }
+          : publication,
+      ),
+    );
+
+    setCurrentScreen("admin-dashboard");
   };
 
-  const selectedPublication = selectedPublicationId 
-    ? publications.find(p => p.id === selectedPublicationId)
+  const selectedPublication = selectedPublicationId
+    ? publications.find(
+        (publication) => publication.id === selectedPublicationId,
+      )
     : null;
 
-  const userPublications = publications.filter(p => p.submittedBy === userName);
-  const approvedPublications = publications.filter(p => p.status === 'approved');
+  const userPublications = publications.filter(
+    (publication) => publication.submittedBy === currentUserName,
+  );
+
+  const approvedPublications = publications.filter(
+    (publication) => publication.status === "approved",
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {currentScreen !== 'login' && (
-        <Header 
-          userRole={userRole}
-          userName={userName}
+      {currentScreen !== "login" && (
+        <Header
+          userRole={currentUser ? currentUser.role : null}
+          userName={currentUser ? currentUser.name : ""}
           onLogout={handleLogout}
           onNavigateToCatalog={handleNavigateToPublicCatalog}
           onNavigateToDashboard={handleNavigateToDashboard}
@@ -199,60 +240,90 @@ function App() {
       )}
 
       <main>
-        {currentScreen === 'login' && (
-          <LoginPage onLogin={handleLogin} />
+        {isLoadingPublications && currentScreen !== "login" && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 rounded p-3">
+              Завантаження публікацій з бази даних...
+            </div>
+          </div>
         )}
 
-        {currentScreen === 'author-dashboard' && (
-          <AuthorDashboard 
+        {publicationsError && currentScreen !== "login" && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded p-3">
+              {publicationsError}
+            </div>
+          </div>
+        )}
+
+        {currentScreen === "login" && <LoginPage onLogin={handleLogin} />}
+
+        {currentScreen === "author-dashboard" && (
+          <AuthorDashboard
             publications={userPublications}
             onCreateNew={handleCreatePublication}
             onViewDetails={handleViewPublication}
           />
         )}
 
-        {currentScreen === 'create-publication' && (
-          <CreatePublicationForm 
+        {currentScreen === "create-publication" && (
+          <CreatePublicationForm
             onSubmit={handleSubmitPublication}
             onCancel={handleNavigateToDashboard}
           />
         )}
 
-        {currentScreen === 'admin-dashboard' && (
-          <AdminDashboard 
+        {currentScreen === "admin-dashboard" && (
+          <AdminDashboard
             publications={publications}
             onReview={handleReviewPublication}
           />
         )}
 
-        {currentScreen === 'admin-review' && selectedPublication && (
-          <AdminReviewScreen 
+        {currentScreen === "admin-review" && selectedPublication && (
+          <AdminReviewScreen
             publication={selectedPublication}
-            onApprove={(notes) => handleApproveReject(selectedPublication.id, 'approved', notes)}
-            onReject={(notes) => handleApproveReject(selectedPublication.id, 'rejected', notes)}
+            onApprove={(notes) =>
+              handleApproveReject(selectedPublication.id, "approved", notes)
+            }
+            onReject={(notes) =>
+              handleApproveReject(selectedPublication.id, "rejected", notes)
+            }
             onCancel={handleNavigateToDashboard}
           />
         )}
 
-        {currentScreen === 'public-catalog' && (
-          <PublicCatalog 
+        {currentScreen === "public-catalog" && (
+          <PublicCatalog
             publications={approvedPublications}
+            currentUserId={currentUser?.userId}
             onViewDetails={handleViewPublication}
           />
         )}
 
-        {currentScreen === 'publication-details' && selectedPublication && (
-          <PublicationDetails 
+        {currentScreen === "publication-details" && selectedPublication && (
+          <PublicationDetails
             publication={selectedPublication}
-            onBack={() => setCurrentScreen(userRole === 'guest' ? 'public-catalog' : userRole === 'author' ? 'author-dashboard' : 'admin-dashboard')}
+            currentUserId={currentUser?.userId}
+            onBack={() =>
+              setCurrentScreen(
+                currentUser == null
+                  ? "public-catalog"
+                  : currentUser.role === "author"
+                    ? "author-dashboard"
+                    : currentUser.role === "admin"
+                      ? "admin-dashboard"
+                      : "public-catalog",
+              )
+            }
           />
         )}
+
+        {/* UserRecommendations removed; recommendations are shown inside PublicCatalog */}
       </main>
 
       {showSuccessDialog && (
-        <SuccessDialog 
-          onClose={() => setShowSuccessDialog(false)}
-        />
+        <SuccessDialog onClose={() => setShowSuccessDialog(false)} />
       )}
     </div>
   );

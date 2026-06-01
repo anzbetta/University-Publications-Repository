@@ -1,38 +1,65 @@
-import { useState } from 'react';
-import { User, Lock, BookOpen } from 'lucide-react';
+import { useState } from "react";
+import { User, Lock, BookOpen } from "lucide-react";
+import type { CurrentUser, UserRole } from "../App";
 
-type UserRole = 'author' | 'admin' | 'guest' | null;
+interface LoginUser extends CurrentUser {}
 
 interface LoginPageProps {
-  onLogin: (role: UserRole, name: string) => void;
+  onLogin: (user: LoginUser) => void;
 }
 
 export function LoginPage({ onLogin }: LoginPageProps) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
-    if (!email || !password) {
-      setError('Please enter both email and password');
-      return;
-    }
+    setLoading(true);
 
-    // Mock authentication logic
-    if (email.includes('admin')) {
-      onLogin('admin', email);
-    } else if (email.includes('@')) {
-      onLogin('author', email);
-    } else {
-      setError('Invalid credentials');
-    }
+    fetch("http://localhost:4000/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    })
+      .then(async (res) => {
+        setLoading(false);
+        if (!res.ok) {
+          setError("Invalid email or password");
+          return;
+        }
+
+        const data = await res.json();
+        if (data && data.user) {
+          const backendRole = String(data.user.role) as UserRole;
+          const allowedRoles: UserRole[] = ["user", "author", "admin", "guest"];
+          const role: UserRole = allowedRoles.includes(backendRole)
+            ? backendRole
+            : "user";
+
+          const user: LoginUser = {
+            userId: Number(data.user.userId),
+            name: data.user.name || "",
+            email: data.user.email || "",
+            role,
+          };
+
+          onLogin(user);
+        } else {
+          setError("Invalid email or password");
+        }
+      })
+      .catch(() => {
+        setLoading(false);
+        setError("Invalid email or password");
+      });
   };
 
   const handleGuestLogin = () => {
-    onLogin('guest', 'Guest User');
+    onLogin({ userId: 0, name: "Guest User", email: "", role: "guest" });
   };
 
   return (
@@ -42,9 +69,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 text-white rounded-full mb-4">
             <BookOpen size={32} />
           </div>
-          <h1 className="text-gray-900 mb-2">
-            University Publications System
-          </h1>
+          <h1 className="text-gray-900 mb-2">University Publications System</h1>
           <p className="text-gray-600">
             Sign in to manage scientific publications
           </p>
@@ -100,7 +125,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
               type="submit"
               className="w-full py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700"
             >
-              Sign In
+              {loading ? "Signing In..." : "Sign In"}
             </button>
           </form>
 

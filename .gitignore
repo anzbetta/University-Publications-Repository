@@ -2,18 +2,15 @@
 # Node
 # =========================
 node_modules/
+server/node_modules/
 
 # =========================
-# Build / Vite
+# Build / Vite / Backend
 # =========================
 dist/
+build/
 .vite/
-
-# =========================
-# Env
-# =========================
-.env
-.env.*
+server/dist/
 
 # =========================
 # Logs
